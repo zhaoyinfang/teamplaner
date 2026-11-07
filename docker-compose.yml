@@ -1,0 +1,62 @@
+# Startet die komplette App:   docker compose up --build
+# Danach im Browser:           http://localhost:3000
+services:
+  postgres:
+    image: postgres:17
+    container_name: teamplaner-db
+    environment:
+      POSTGRES_DB: teamplaner
+      POSTGRES_USER: teamplaner
+      POSTGRES_PASSWORD: teamplaner
+    ports:
+      # Nur fuer Entwicklung (z. B. psql, pgAdmin, Backend per Maven).
+      # 5433 statt 5432, damit eine lokal installierte PostgreSQL nicht stoert.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teamplaner -d teamplaner"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: teamplaner-backend
+    environment:
+      # Im Docker-Netz heisst die Datenbank "postgres" (Servicename), nicht "localhost"
+      DB_URL: jdbc:postgresql://postgres:5432/teamplaner
+      DB_USER: teamplaner
+      DB_PASSWORD: teamplaner
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change-0123456789abcdef}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      # Fuer Swagger UI: http://localhost:8080/swagger-ui.html
+      - "127.0.0.1:8080:8080"
+
+  frontend:
+    build: ./frontend
+    container_name: teamplaner-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+  # Optional: docker compose --profile tools up
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: teamplaner-pgadmin
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "127.0.0.1:5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
