@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: teamplaner-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/teamplaner}
+    username: ${DB_USER:teamplaner}
+    password: ${DB_PASSWORD:teamplaner}
+  jpa:
+    hibernate:
+      ddl-auto: validate      # Flyway besitzt das Schema, Hibernate prueft nur
+    open-in-view: false
+  flyway:
+    enabled: true
+
+teamplaner:
+  jwt:
+    # Nur fuer lokale Entwicklung! In echten Umgebungen per Umgebungsvariable JWT_SECRET setzen (mind. 32 Zeichen).
+    secret: ${JWT_SECRET:dev-only-secret-please-change-0123456789abcdef}
+    ttl-minutes: 120
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:5173
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
