@@ -1,9 +1,9 @@
 # Teamplaner
 
-A team-management backend inspired by apps like SpielerPlus: users register, create or join teams,
+This team-management App is inspired by apps like SpielerPlus: users register, create or join teams,
 the team owner publishes events (e.g. training sessions), and members accept or decline them.
 
-Learning project with a focus on a clean REST API, a relational data model and real access control.
+This is a project with a focus on a clean REST API, a relational data model and real access control.
 
 ## Stack
 Java 21 · Spring Boot · Spring Security (JWT) · Spring Data JPA / Hibernate · PostgreSQL · Flyway ·
@@ -19,11 +19,17 @@ Planned: RabbitMQ (notifications), microservice split, Kubernetes.
 
 ## Run it
 
-### Everything with one command (Docker)
+You can start the project in two ways. Both give you the same app.
+
+### Option A: Everything with Docker (one command)
+
+Requires Docker only.
+
 ```bash
 docker compose up --build
 ```
-Then open **http://localhost:3000**, register, create a team, publish an event.
+
+Then open **http://localhost:3000**, register, create a team and publish an event.
 
 | Service | URL |
 |---|---|
@@ -35,17 +41,53 @@ Then open **http://localhost:3000**, register, create a team, publish an event.
 nginx serves the React app and forwards `/api/*` to the backend, so the browser only talks to one origin.
 Set your own JWT secret with `cp .env.example .env` and edit it.
 
-### Development mode (without containers for app code)
-Database via Docker, backend and frontend with hot reload:
+Stop everything with `docker compose down` (add `-v` to also delete the database).
+
+### Option B: Development mode (without Docker for the app code)
+
+Backend and frontend run directly on your machine with hot reload.
+
+**Requirements:** Java 21 (JDK), Maven, Node.js 22, PostgreSQL
+
+**1. Database**: create a user and an empty database once:
+```sql
+CREATE USER teamplaner WITH PASSWORD 'teamplaner';
+CREATE DATABASE teamplaner OWNER teamplaner;
+```
+Flyway creates all tables on the first start. The database must be empty or only contain Flyway-managed tables.
+
+No local PostgreSQL? Use the database container instead. It already has the same user, password and database name (`teamplaner`), but listens on port 5433:
 ```bash
 docker compose up -d postgres
-cd backend && DB_URL=jdbc:postgresql://localhost:5433/teamplaner mvn spring-boot:run
-cd frontend && npm install && npm run dev        # http://localhost:5173
+export DB_URL=jdbc:postgresql://localhost:5433/teamplaner
 ```
-(Use `localhost:5432` and your own local PostgreSQL instead if you prefer; create user/database `teamplaner` first.)
+
+**2. Backend** (terminal 1)
+```bash
+cd backend
+mvn spring-boot:run
+```
+This uses the defaults `localhost:5432`, database `teamplaner`, user `teamplaner`, password `teamplaner`,
+which match step 1. If you used the database container, run the `export` line from step 1 first, in the same terminal.
+
+*Using your own database or user instead?* Set these variables for the start command:
+```bash
+DB_URL=jdbc:postgresql://localhost:5432/<your-database> DB_USER=<your-user> DB_PASSWORD=<your-password> mvn spring-boot:run
+```
+
+**3. Frontend** (terminal 2)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Open **http://localhost:5173**. The dev server forwards `/api/*` to the backend on port 8080.
+
+The database keeps its data between restarts. Only new Flyway migrations are applied on startup, so you never need to reset it.
 
 ### Tests
-Need Docker; Testcontainers starts a real PostgreSQL.
+
+Need Docker; Testcontainers starts a real PostgreSQL for the tests.
 ```bash
 cd backend && mvn verify
 ```
